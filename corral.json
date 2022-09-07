@@ -1,0 +1,19 @@
+{
+  "packages": [
+    "pg"
+  ],
+  "deps": [
+    {
+      "locator": "github.com/seantallen/lori.git",
+      "version": "0.1.1"
+    }
+  ],
+  "info": {
+    "description": "Pure Pony driver for PostgreSQL",
+    "homepage": "https://github.com/redvers/pony-pg",
+    "license": "",
+    "documentation_url": "",
+    "version": "",
+    "name": "pony-pg"
+  }
+}
