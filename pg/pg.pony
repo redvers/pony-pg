@@ -4,8 +4,6 @@ use "crypto"
 use "format"
 use "buffered"
 
-use @exit[None](rv: I32)
-
 actor PgSession is TCPClientActor
   let auth: NetAuth
   let host: String
@@ -73,6 +71,8 @@ actor PgSession is TCPClientActor
     | let t: U8 if (t == 'Z') => let st: U8 = ReadyForQuery.apply(reader)?
                                  notifier.on_ready_for_query(this, st)
     | let t: U8 if (t == 'T') => RowDescription(reader)?
+    | let t: U8 if (t == 'D') => DataRow(reader)?
+    | let t: U8 if (t == 'C') => CommandComplete(reader)?
     else
       let pkttype: U8 = reader.peek_u8(0)?
       Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
