@@ -20,4 +20,6 @@ class DemoApplication is PgSessionNotify
   fun ref on_authenticated(): None => env.out.print("AUTHENTICATION SUCCESSFUL")
   fun ref on_auth_fail(): None => env.out.print("AUTHENTICATION FAILED")
   fun ref on_parameter_status(name: String, value: String): None => env.out.print("PARAMETERS PASSED: " + name + ": " + value)
-  fun ref on_ready_for_query(status: U8): None => env.out.print("READY FOR QUERY STATE: " + String.from_array([status]))
+  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
+    env.out.print("READY FOR QUERY STATE: " + String.from_array([status]))
+    ptag.simple_query("select * from test")
