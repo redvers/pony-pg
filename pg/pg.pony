@@ -73,6 +73,7 @@ actor PgSession is TCPClientActor
     | let t: U8 if (t == 'T') => RowDescription(reader)?
     | let t: U8 if (t == 'D') => DataRow(reader)?
     | let t: U8 if (t == 'C') => CommandComplete(reader)?
+    | let t: U8 if (t == 'E') => ErrorResponse(reader)?
     else
       let pkttype: U8 = reader.peek_u8(0)?
       Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
