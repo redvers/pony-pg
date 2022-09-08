@@ -24,4 +24,4 @@ class DemoApplication is PgSessionNotify
   fun ref on_parameter_status(name: String, value: String): None => env.out.print("PARAMETERS PASSED: " + name + ": " + value)
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
     env.out.print("READY FOR QUERY STATE: " + String.from_array([status]))
-    if (once) then ptag.simple_query("select * from test") ; once = false end
+    if (once) then ptag.simple_query("selet * from test") ; once = false end

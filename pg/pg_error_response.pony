@@ -7,7 +7,7 @@ use @exit[None](r: I32)
 use @printf[I32](fmt: Pointer[U8] tag, ...)
 
 primitive ErrorResponse
-  fun apply(reader: Reader) ? =>
+  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify) ? =>
     reader.i8()?
     var length: U32 = reader.u32_be()?
 
@@ -16,6 +16,9 @@ primitive ErrorResponse
 			if (code == 0) then break end
       let commandtag: String val = String.from_array(reader.read_until(0)?)
       Debug.out("← ErrorResponse: " + string(code) + ": " + commandtag)
+      if (code == 'C') and (commandtag.substring(0,2) == "28") then
+        notifier.on_auth_fail(ptag, commandtag)
+      end
     end
 
 	fun string(code: U8): String val =>

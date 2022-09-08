@@ -4,3 +4,4 @@ tags
 .deps/*
 _corral
 _repos
+*.swp

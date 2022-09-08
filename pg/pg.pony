@@ -34,7 +34,7 @@ actor PgSession is TCPClientActor
   fun ref connection(): TCPConnection => _connection
 
   fun ref on_connected() =>
-    notifier.on_connected()
+    notifier.on_connected(this)
     let payload: Writer = PGStartupMessage(
       [
         ("user", user)
@@ -63,17 +63,17 @@ actor PgSession is TCPClientActor
         flush_writer()
 
       | let tt: I32 if (tt == 0) => AuthenticationOk(reader)?
-                                    notifier.on_authenticated()
+                                    notifier.on_authenticated(this)
       end
 
-    | let t: U8 if (t == 'S') => ParameterStatus.apply(reader, notifier)?
+    | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
     | let t: U8 if (t == 'K') => BackendKeyData.apply(reader)?
     | let t: U8 if (t == 'Z') => let st: U8 = ReadyForQuery.apply(reader)?
                                  notifier.on_ready_for_query(this, st)
     | let t: U8 if (t == 'T') => RowDescription(reader)?
     | let t: U8 if (t == 'D') => DataRow(reader)?
     | let t: U8 if (t == 'C') => CommandComplete(reader)?
-    | let t: U8 if (t == 'E') => ErrorResponse(reader)?
+    | let t: U8 if (t == 'E') => ErrorResponse(this, reader, notifier)?
     else
       let pkttype: U8 = reader.peek_u8(0)?
       Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
@@ -105,4 +105,5 @@ actor PgSession is TCPClientActor
     wrap_writer(SimpleQuery(query), 'Q')
     flush_writer()
 
-
+  be kill() =>
+    _connection.close()
