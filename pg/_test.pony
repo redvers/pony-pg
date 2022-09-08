@@ -25,6 +25,7 @@ class _SQLLoginGood is UnitTest
           "5432", "red", "red", "red",
           recover iso SQLLoginTestsGood(h) end)
     )
+    h.long_test(30_000_000)
 
 class _SQLLoginBad is UnitTest
   fun name(): String => "sqllogin failure"
@@ -36,6 +37,7 @@ class _SQLLoginBad is UnitTest
           "5432", "red", "baddpassword", "red",
           recover iso SQLLoginTestsBad(h) end)
     )
+    h.long_test(30_000_000)
 
 class SQLLoginTestsGood is PgSessionNotify
   let h: TestHelper
@@ -48,12 +50,11 @@ class SQLLoginTestsGood is PgSessionNotify
     ptag.kill()
 
   fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
-    h.complete_action("login fail")
+    h.fail_action("login successful")
     ptag.kill()
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
-  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
-    h.fail_action("login fail")
+  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None => None
 
 class SQLLoginTestsBad is PgSessionNotify
   let h: TestHelper
@@ -62,17 +63,15 @@ class SQLLoginTestsBad is PgSessionNotify
 
   fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None =>
-    h.fail("login fail")
     h.fail_action("login fail")
     ptag.kill()
 
   fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
-    h.fail("login fail")
-    h.fail_action("login fail")
+    h.complete_action("login fail")
     ptag.kill()
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
-    h.fail("login fail")
     h.fail_action("login fail")
+    ptag.kill()
 
