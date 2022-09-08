@@ -4,6 +4,8 @@ use "crypto"
 use "format"
 use "buffered"
 
+use @exit[None](rv: I32)
+
 actor PgSession is TCPClientActor
   let auth: NetAuth
   let host: String
@@ -13,24 +15,28 @@ actor PgSession is TCPClientActor
   let database: String
   let reader: Reader = Reader
   let writer: Writer = Writer
+  let notifier: PgSessionNotify
 
   var _connection: TCPConnection = TCPConnection.none()
 
   new create(auth': NetAuth, host': String,
              service': String, user': String,
-             password': String, database': String) =>
+             password': String, database': String,
+             notifier': PgSessionNotify iso) =>
     auth = auth'
     host = host'
     service = service'
     user = user'
     password = password'
     database = database'
+    notifier = consume notifier'
 
     _connection = TCPConnection.client(auth, host, service, "", this)
 
   fun ref connection(): TCPConnection => _connection
 
   fun ref on_connected() =>
+    notifier.on_connected()
     let payload: Writer = PGStartupMessage(
       [
         ("user", user)
@@ -47,15 +53,30 @@ actor PgSession is TCPClientActor
 
   fun ref process_packet() ? =>
     match reader.peek_u8(0)?
+    /* Some kind of Authentication Packet */
     | let t: U8 if (t == 'R') =>
+      /* Check for AuthenticationMD5Password */
       match reader.peek_i32_be(5)?
       | let tt: I32 if (tt == 5) =>
         let salt: Array[U8] val = AuthenticationMD5Password.apply(reader)?
         let md5res: String val = gen_md5(salt)
+        /* Return Challenge */
         wrap_writer(PGPasswordMessage.apply(md5res), 'p')
         flush_writer()
 
+      | let tt: I32 if (tt == 0) => AuthenticationOk(reader)?
+                                    notifier.on_authenticated()
       end
+
+    | let t: U8 if (t == 'S') => ParameterStatus.apply(reader, notifier)?
+    else
+      let pkttype: U8 = reader.peek_u8(0)?
+      Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
+      reader.clear()
+      _connection.close()
+    end
+    if (reader.size() > 0) then
+      try process_packet()? end
     end
 
 
@@ -74,46 +95,3 @@ actor PgSession is TCPClientActor
     for byteseq in writer.done().values() do
       _connection.send(byteseq)
     end
-/*
-
-primitive PGStartupMessage
-  fun apply(params: Array[(String, String)] box): Writer =>
-    var writer: Writer = Writer
-    writer.i32_be(196608)
-    for (key, value) in params.values() do
-      writer.write(key)
-      writer.u8(0)
-      writer.write(value)
-      writer.u8(0)
-    end
-    writer.u8(0)
-    writer
-
-primitive AuthenticationMD5Password
-  fun apply(reader: Reader): Array[U8] val ? =>
-    reader.i8()?
-    let length: U32 = reader.u32_be()?
-    reader.u32_be()?
-    let salt: U32 = reader.u32_be()?
-    let saltstr = recover val correct_salt_endianness(salt) end
-    Debug.out("← AuthenticationMD5Password, Length: " + length.string() + ", Salt: " +
-        Format.int[U8](saltstr(0)? where width=2, fmt = FormatHexSmallBare) +
-        Format.int[U8](saltstr(1)? where width=2, fmt = FormatHexSmallBare) +
-        Format.int[U8](saltstr(2)? where width=2, fmt = FormatHexSmallBare) +
-        Format.int[U8](saltstr(3)? where width=2, fmt = FormatHexSmallBare)
-    )
-    saltstr
-
-
-  fun correct_salt_endianness(u32: U32, arr: Array[U8] iso = recover Array[U8](4) end): Array[U8] iso^ =>
-    let l1: U8 = (u32 and 0xFF).u8()
-    let l2: U8 = ((u32 >> 8) and 0xFF).u8()
-    let l3: U8 = ((u32 >> 16) and 0xFF).u8()
-    let l4: U8 = ((u32 >> 24) and 0xFF).u8()
-    arr.push(l4)
-    arr.push(l3)
-    arr.push(l2)
-    arr.push(l1)
-    consume arr
-
-    */
