@@ -69,6 +69,9 @@ actor PgSession is TCPClientActor
       end
 
     | let t: U8 if (t == 'S') => ParameterStatus.apply(reader, notifier)?
+    | let t: U8 if (t == 'K') => BackendKeyData.apply(reader)?
+    | let t: U8 if (t == 'Z') => let st: U8 = ReadyForQuery.apply(reader)?
+                                 notifier.on_ready_for_query(st)
     else
       let pkttype: U8 = reader.peek_u8(0)?
       Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
