@@ -56,23 +56,21 @@ actor PgSession is TCPClientActor
       /* Check for AuthenticationMD5Password */
       match reader.peek_i32_be(5)?
       | let tt: I32 if (tt == 5) =>
-        let salt: Array[U8] val = AuthenticationMD5Password.apply(reader)?
+        let salt: Array[U8] val = AuthenticationMD5Password.apply(this, reader, notifier)?
         let md5res: String val = gen_md5(salt)
         /* Return Challenge */
         wrap_writer(PGPasswordMessage.apply(md5res), 'p')
         flush_writer()
 
-      | let tt: I32 if (tt == 0) => AuthenticationOk(reader)?
-                                    notifier.on_authenticated(this)
+      | let tt: I32 if (tt == 0) => AuthenticationOk(this, reader, notifier)?
       end
 
     | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
-    | let t: U8 if (t == 'K') => BackendKeyData.apply(reader)?
-    | let t: U8 if (t == 'Z') => let st: U8 = ReadyForQuery.apply(reader)?
-                                 notifier.on_ready_for_query(this, st)
-    | let t: U8 if (t == 'T') => RowDescription(reader)?
-    | let t: U8 if (t == 'D') => DataRow(reader)?
-    | let t: U8 if (t == 'C') => CommandComplete(reader)?
+    | let t: U8 if (t == 'K') => BackendKeyData.apply(this, reader, notifier)?
+    | let t: U8 if (t == 'Z') => ReadyForQuery.apply(this, reader, notifier)?
+    | let t: U8 if (t == 'T') => RowDescription(this, reader, notifier)?
+    | let t: U8 if (t == 'D') => DataRow(this, reader, notifier)?
+    | let t: U8 if (t == 'C') => CommandComplete(this, reader, notifier)?
     | let t: U8 if (t == 'E') => ErrorResponse(this, reader, notifier)?
     else
       let pkttype: U8 = reader.peek_u8(0)?

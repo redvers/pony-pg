@@ -2,7 +2,7 @@ use "debug"
 use "format"
 use "buffered"
 
-primitive ParameterStatus
+primitive ParameterStatus is PgPacket
   fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify)? =>
     reader.i8()?
     let length: U32 = reader.u32_be()?

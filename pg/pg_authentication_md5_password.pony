@@ -3,7 +3,7 @@ use "format"
 use "buffered"
 
 primitive AuthenticationMD5Password
-  fun apply(reader: Reader): Array[U8] val ? =>
+  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify): Array[U8] val ? =>
     reader.i8()?
     let length: U32 = reader.u32_be()?
     reader.u32_be()?

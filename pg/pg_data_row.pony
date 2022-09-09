@@ -3,8 +3,8 @@ use "format"
 use "buffered"
 use "collections"
 
-primitive DataRow
-  fun apply(reader: Reader): Array[String] val ? =>
+primitive DataRow is PgPacket
+  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify)? =>
     reader.i8()?
     let length: U32 = reader.u32_be()?
     let numfields: U16 = reader.u16_be()?
