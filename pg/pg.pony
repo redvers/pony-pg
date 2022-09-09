@@ -107,5 +107,9 @@ actor PgSession is TCPClientActor
     wrap_writer(SimpleQuery(query), 'Q')
     flush_writer()
 
+  be terminate() =>
+    wrap_writer(Terminate(), 'X')
+    flush_writer()
+
   be kill() =>
     _connection.close()

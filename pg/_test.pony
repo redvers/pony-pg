@@ -47,11 +47,11 @@ class SQLLoginTestsGood is PgSessionNotify
   fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None =>
     h.complete_action("login successful")
-    ptag.kill()
+    ptag.terminate()
 
   fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
     h.fail_action("login successful")
-    ptag.kill()
+    ptag.terminate()
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None => None
@@ -64,14 +64,14 @@ class SQLLoginTestsBad is PgSessionNotify
   fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None =>
     h.fail_action("login fail")
-    ptag.kill()
+    ptag.terminate()
 
   fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
     h.complete_action("login fail")
-    ptag.kill()
+    ptag.terminate()
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
     h.fail_action("login fail")
-    ptag.kill()
+    ptag.terminate()
 
