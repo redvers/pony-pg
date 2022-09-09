@@ -45,8 +45,10 @@ actor PgSession is TCPClientActor
 
   fun ref on_received(data: Array[U8] iso) =>
     reader.append(consume data)
-    if (reader.size() > 0) then
-      try process_packet()? end
+    try
+      if ((reader.size() > 0) and (reader.size().u32() >= reader.peek_u32_be(1)?)) then
+        process_packet()?
+      end
     end
 
   fun ref process_packet() ? =>
@@ -78,8 +80,10 @@ actor PgSession is TCPClientActor
       reader.clear()
       _connection.close()
     end
-    if (reader.size() > 0) then
-      try process_packet()? end
+    try
+      if ((reader.size() > 0) and (reader.size().u32() >= reader.peek_u32_be(1)?)) then
+        process_packet()?
+      end
     end
 
 
