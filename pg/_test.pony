@@ -35,17 +35,16 @@ class _SQLSelectTest is UnitTest
         testtext TEXT);
       """
       let query0: PGQuery iso = recover iso PGQuery(createsql, [], 4, SQLReceiver(h)) end
-      let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 42, 'row 1');", [], 4, SQLReceiver(h)) end
-      let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 42, 'row 1');", [], 4, SQLReceiver(h)) end
-      let query3: PGQuery iso = recover iso PGQuery("select * from temptest", [], 4, SQLReceiver(h)) end
-//      let query3: PGQuery iso = recover iso PGQuery("select * from temptest", [], 4, SQLReceiver(h)) end
+      let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');", [], 4, SQLReceiver(h)) end
+      let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');", [], 4, SQLReceiver(h)) end
+      let query3: PGQuery iso = recover iso PGQuery("select * from temptest where id = 2", [], 4, SQLReceiver(h)) end
       pg.query(consume query0)
       pg.query(consume query1)
       pg.query(consume query2)
       pg.query(consume query3)
       pg
     )
-    h.long_test(30_000_000_000)
+    h.long_test(30_000_000_00)
 
 actor SQLReceiver is ResultsReceiver
   let h: TestHelper
@@ -55,6 +54,9 @@ actor SQLReceiver is ResultsReceiver
   be receive_results(pgquery: PGQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
     var rowcnt: USize = 0
     for f in (consume data).values() do
+      try let id: I64 = f.apply(0)? as I64 else h.fail("I64 did not cast") end
+      try let ti: I32 = f.apply(1)? as I32 else h.fail("I32 did not cast") end
+      try let st: String = f.apply(2)? as String else h.fail("String did not cast") end
       // We're only doing this so we can check data as
       // we develop the tests appropriately
       rowcnt = rowcnt + 1
@@ -62,9 +64,10 @@ actor SQLReceiver is ResultsReceiver
     Debug.out("Number rows: " + rowcnt.string())
     if (pgquery.query.substring(0,6) == "create") then h.complete_action("select0") end
     match pgquery.query
-    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (1, 42, 'row 1');") => h.complete_action("select1")
-    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (2, 42, 'row 1');") => h.complete_action("select2")
-    | let x: String if (x == "select * from temptest") => h.complete_action("select3")
+    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');") => h.complete_action("select1")
+    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');") => h.complete_action("select2")
+    | let x: String if (x == "select * from temptest where id = 2") =>
+      h.complete_action("select3")
     end
 
 class SQLSelectTestNotify is PgSessionNotify
