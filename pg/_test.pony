@@ -32,7 +32,7 @@ actor SQLReceiver is ResultsReceiver
   new create(h': TestHelper) =>
     h = h'
 
-  be receive_results(data: Array[Array[PGNativePonyTypes] val] iso) =>
+  be receive_results(pgquery: PGQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
     var rowcnt: USize = 0
     for f in (consume data).values() do
       // We're only doing this so we can check data as
@@ -57,8 +57,8 @@ class SQLSelectTestNotify is PgSessionNotify
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
-    let query: PGQuery iso = recover iso PGQuery("select * from test", [], 4) end
-    ptag.query(consume query, r)
+    let query: PGQuery iso = recover iso PGQuery("select * from test", [], 4, r) end
+    ptag.query(consume query)
 
 class _SQLLoginGood is UnitTest
   fun name(): String => "sqllogin success"
