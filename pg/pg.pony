@@ -15,6 +15,11 @@ actor PgSession is TCPClientActor
   let writer: Writer = Writer
   let notifier: PgSessionNotify
 
+  var send_results_to: (ResultsReceiver tag|None tag) = None
+  var result_batch_size: USize = 4
+  var resultbuffer: Array[Array[PGNativePonyTypes] val] iso = recover iso Array[Array[PGNativePonyTypes] val] end
+  var columntypes: Array[(U32, String)] val = []
+
   var _connection: TCPConnection = TCPConnection.none()
 
   new create(auth': NetAuth, host': String,
@@ -70,9 +75,18 @@ actor PgSession is TCPClientActor
     | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
     | let t: U8 if (t == 'K') => BackendKeyData.apply(this, reader, notifier)?
     | let t: U8 if (t == 'Z') => ReadyForQuery.apply(this, reader, notifier)?
-    | let t: U8 if (t == 'T') => RowDescription(this, reader, notifier)?
-    | let t: U8 if (t == 'D') => DataRow(this, reader, notifier)?
+    | let t: U8 if (t == 'T') => columntypes = RowDescription(this, reader, notifier)?
+    | let t: U8 if (t == 'D') => resultbuffer.push(DataRow(columntypes, this, reader, notifier)?)
+                                  /* handwave - should be checking batchsize here */
     | let t: U8 if (t == 'C') => CommandComplete(this, reader, notifier)?
+                                 match send_results_to
+                                 | let x: None tag => Debug.out("Nowhere to send results to")
+                                 | let x: ResultsReceiver tag =>
+                                   let sendme: Array[Array[PGNativePonyTypes] val] iso = resultbuffer = recover iso Array[Array[PGNativePonyTypes] val] end
+                                   x.receive_results(consume sendme)
+//                                     send_results_to = None
+                                 end
+
     | let t: U8 if (t == 'E') => ErrorResponse(this, reader, notifier)?
     else
       let pkttype: U8 = reader.peek_u8(0)?
@@ -103,8 +117,14 @@ actor PgSession is TCPClientActor
       _connection.send(byteseq)
     end
 
-  be simple_query(query: String) =>
-    wrap_writer(SimpleQuery(query), 'Q')
+  be simple_query(q: String) =>
+    wrap_writer(SimpleQuery(q), 'Q')
+    flush_writer()
+
+  be query(pgq: PGQuery val, send_results_to': ResultsReceiver tag) =>
+    send_results_to = send_results_to'
+    result_batch_size = pgq.batchsize
+    wrap_writer(SimpleQuery(pgq.query), 'Q')
     flush_writer()
 
   be terminate() =>

@@ -3,8 +3,8 @@ use "format"
 use "buffered"
 use "collections"
 
-primitive DataRow is PgPacket
-  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify)? =>
+primitive DataRow
+  fun apply(columntypes: Array[(U32, String)] val, ptag: PgSession, reader: Reader, notifier: PgSessionNotify): Array[PGNativePonyTypes] val ? =>
     reader.i8()?
     let length: U32 = reader.u32_be()?
     let numfields: U16 = reader.u16_be()?
@@ -12,11 +12,11 @@ primitive DataRow is PgPacket
     Debug.out("← DataRow, Length: " + length.string() +
               ", Number of Columns: " + numfields.string())
 
-    let rowdata: Array[(String|None)] trn = recover iso Array[(String|None)] end
+    let rowdata: Array[PGNativePonyTypes] trn = recover iso Array[PGNativePonyTypes] end
     for f in Range(0, numfields.usize()) do
       let collen: I32 = reader.i32_be()?
       if (collen == I32(-1)) then
-        Debug.out(f.string() + ": None (NULL value in column)")
+        Debug.out(f.string() + "[" + columntypes.apply(f)?._1.string() + "]: None (NULL value in column)")
         rowdata.push(None)
         continue
       end
@@ -27,7 +27,7 @@ primitive DataRow is PgPacket
       end
       let sv: String val = String.from_array(consume array)
       rowdata.push(sv)
-      Debug.out(f.string() + ": " + sv)
+      Debug.out(f.string() + ": " + columntypes.apply(f)?._2 + " [" + columntypes.apply(f)?._1.string() + "]: " + sv)
     end
     consume rowdata
 

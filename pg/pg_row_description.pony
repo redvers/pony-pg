@@ -3,8 +3,8 @@ use "format"
 use "buffered"
 use "collections"
 
-primitive RowDescription is PgPacket
-  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify) ? =>
+primitive RowDescription
+  fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify): Array[(U32, String)] val ? =>
     reader.i8()?
     let length: U32 = reader.u32_be()?
     let numfields: U16 = reader.u16_be()?
@@ -12,6 +12,7 @@ primitive RowDescription is PgPacket
     Debug.out("← RowDescription, Length: " + length.string() +
               ", Number of Fields: " + numfields.string())
 
+    let rv: Array[(U32, String)] trn = recover iso Array[(U32, String)] end
     for f in Range(0, numfields.usize()) do
       let name: String val = String.from_array(reader.read_until(0)?)
       let tableoid: U32 = reader.u32_be()?
@@ -27,7 +28,9 @@ primitive RowDescription is PgPacket
       Debug.out("       typelen: " + typelen.string())
       Debug.out("       typemod: " + typemod.string())
       Debug.out("        format: " + format.string())
+      rv.push((typeoid, name))
     end
+    consume rv
 
 
 

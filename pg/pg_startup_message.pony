@@ -4,6 +4,7 @@ use "buffered"
 primitive PGStartupMessage
   fun apply(params: Array[(String, String)] box): Writer =>
     Debug.out("→ StartupMessage with params: ")
+    let rv: Array[U8] trn = recover trn Array[U8] end
     var writer: Writer = Writer
     writer.i32_be(196608)
     for (key, value) in params.values() do
