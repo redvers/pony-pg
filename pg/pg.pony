@@ -17,6 +17,7 @@ actor PgSession is TCPClientActor
 
   var resultbuffer: Array[Array[PGNativePonyTypes] val] iso = recover iso Array[Array[PGNativePonyTypes] val] end
   var columntypes: Array[(U32, String)] val = []
+  var queryqueue: Array[PGQuery val] = Array[PGQuery val]
   var current_query: (PGQuery val|None) = None
 
   var _connection: TCPConnection = TCPConnection.none()
@@ -74,6 +75,19 @@ actor PgSession is TCPClientActor
     | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
     | let t: U8 if (t == 'K') => BackendKeyData.apply(this, reader, notifier)?
     | let t: U8 if (t == 'Z') => ReadyForQuery.apply(this, reader, notifier)?
+                                 Debug.out("QueryQueueSize: " + queryqueue.size().string())
+                                 if (queryqueue.size() > 0) then
+                                   current_query = queryqueue.shift()?
+                                   match current_query
+                                   | let x: PGQuery val => wrap_writer(SimpleQuery(x.query), 'Q')
+                                                           Debug.out("←>> " + x.query)
+                                   end
+                                   flush_writer()
+                                 end
+//  be query(pgq: PGQuery val) =>
+//    current_query = pgq
+//    wrap_writer(SimpleQuery(pgq.query), 'Q')
+//    flush_writer()
     | let t: U8 if (t == 'T') => columntypes = RowDescription(this, reader, notifier)?
     | let t: U8 if (t == 'D') => resultbuffer.push(DataRow(columntypes, this, reader, notifier)?)
                                   /* handwave - should be checking batchsize here */
@@ -122,9 +136,7 @@ actor PgSession is TCPClientActor
     flush_writer()
 
   be query(pgq: PGQuery val) =>
-    current_query = pgq
-    wrap_writer(SimpleQuery(pgq.query), 'Q')
-    flush_writer()
+    queryqueue.push(pgq)
 
   be terminate() =>
     wrap_writer(Terminate(), 'X')

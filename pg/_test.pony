@@ -19,13 +19,33 @@ class _True is UnitTest
 class _SQLSelectTest is UnitTest
   fun name(): String => "select * from test"
   fun apply(h: TestHelper) =>
-    h.expect_action("select")
+    h.expect_action("select0")
+    h.expect_action("select1")
+    h.expect_action("select2")
+    h.expect_action("select3")
     h.dispose_when_done(
-      PgSession(NetAuth(h.env.root), "127.0.0.1",
+      let pg: PgSession = PgSession(NetAuth(h.env.root), "127.0.0.1",
           "5432", "red", "red", "red",
           recover iso SQLSelectTestNotify(h) end)
+      let createsql: String val =
+      """
+      create TEMPORARY TABLE temptest (
+        id bigint NOT NULL UNIQUE,
+        testint integer NOT NULL,
+        testtext TEXT);
+      """
+      let query0: PGQuery iso = recover iso PGQuery(createsql, [], 4, SQLReceiver(h)) end
+      let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 42, 'row 1');", [], 4, SQLReceiver(h)) end
+      let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 42, 'row 1');", [], 4, SQLReceiver(h)) end
+      let query3: PGQuery iso = recover iso PGQuery("select * from temptest", [], 4, SQLReceiver(h)) end
+//      let query3: PGQuery iso = recover iso PGQuery("select * from temptest", [], 4, SQLReceiver(h)) end
+      pg.query(consume query0)
+      pg.query(consume query1)
+      pg.query(consume query2)
+      pg.query(consume query3)
+      pg
     )
-    h.long_test(30_000_000)
+    h.long_test(30_000_000_000)
 
 actor SQLReceiver is ResultsReceiver
   let h: TestHelper
@@ -40,14 +60,17 @@ actor SQLReceiver is ResultsReceiver
       rowcnt = rowcnt + 1
     end
     Debug.out("Number rows: " + rowcnt.string())
-    h.complete_action("select")
+    if (pgquery.query.substring(0,6) == "create") then h.complete_action("select0") end
+    match pgquery.query
+    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (1, 42, 'row 1');") => h.complete_action("select1")
+    | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (2, 42, 'row 1');") => h.complete_action("select2")
+    | let x: String if (x == "select * from temptest") => h.complete_action("select3")
+    end
 
 class SQLSelectTestNotify is PgSessionNotify
   let h: TestHelper
-  let r: SQLReceiver
   new create(h': TestHelper) =>
     h = h'
-    r = SQLReceiver(h)
 
   fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None => None
@@ -56,9 +79,7 @@ class SQLSelectTestNotify is PgSessionNotify
     ptag.terminate()
 
   fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
-  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None =>
-    let query: PGQuery iso = recover iso PGQuery("select * from test", [], 4, r) end
-    ptag.query(consume query)
+  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None => None
 
 class _SQLLoginGood is UnitTest
   fun name(): String => "sqllogin success"

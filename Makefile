@@ -1,4 +1,4 @@
-config ?= debug
+config ?= release
 
 PACKAGE := pg
 COMPILE_WITH := corral run -- ponyc
