@@ -50,6 +50,7 @@ actor PgSession is TCPClientActor
 
   fun ref on_received(data: Array[U8] iso) =>
     reader.append(consume data)
+    Debug.out("PgSession.on_received() called")
     try process_packet()? end
 
   fun ref process_packet() ? =>
