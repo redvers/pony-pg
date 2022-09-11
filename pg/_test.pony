@@ -1,6 +1,23 @@
 use "lori"
+use "cli"
 use "debug"
 use "pony_test"
+
+
+class val _PostgresInfo
+  let host: String
+  let port: String
+  let username: String
+  let password: String
+  let database: String
+
+  new val create(vars: (Array[String] val | None)) =>
+    let e = EnvVars(vars)
+    host = try e("POSTGRES_HOST")? else "127.0.0.1" end
+    port = try e("POSTGRES_PORT")? else "5432" end
+    username = try e("POSTGRES_USERNAME")? else "red" end
+    password = try e("POSTGRES_PASSWORD")? else "red" end
+    database = try e("POSTGRES_DATABASE")? else "red" end
 
 actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
@@ -17,33 +34,36 @@ class _True is UnitTest
     h.assert_eq[Bool](true, true)
 
 class _SQLSelectTest is UnitTest
-  fun name(): String => "select * from test"
+  fun name(): String => "integration/SQLSelectTest"
   fun apply(h: TestHelper) =>
+    let info = _PostgresInfo(h.env.vars)
+
     h.expect_action("select0")
     h.expect_action("select1")
     h.expect_action("select2")
     h.expect_action("select3")
-    h.dispose_when_done(
-      let pg: PgSession = PgSession(NetAuth(h.env.root), "127.0.0.1",
-          "5432", "red", "red", "red",
-          recover iso SQLSelectTestNotify(h) end)
-      let createsql: String val =
-      """
-      create TEMPORARY TABLE temptest (
-        id bigint NOT NULL UNIQUE,
-        testint integer NOT NULL,
-        testtext TEXT);
-      """
-      let query0: PGQuery iso = recover iso PGQuery(createsql, [], 4, SQLReceiver(h)) end
-      let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');", [], 4, SQLReceiver(h)) end
-      let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');", [], 4, SQLReceiver(h)) end
-      let query3: PGQuery iso = recover iso PGQuery("select * from temptest where id = 2", [], 4, SQLReceiver(h)) end
-      pg.query(consume query0)
-      pg.query(consume query1)
-      pg.query(consume query2)
-      pg.query(consume query3)
-      pg
-    )
+
+    let pg: PgSession = PgSession(NetAuth(h.env.root), info.host,
+        info.port, info.username, info.password, info.database,
+        recover iso SQLSelectTestNotify(h) end)
+    let createsql: String val =
+    """
+    create TEMPORARY TABLE temptest (
+      id bigint NOT NULL UNIQUE,
+      testint integer NOT NULL,
+      testtext TEXT);
+    """
+    let query0: PGQuery iso = recover iso PGQuery(createsql, [], 4, SQLReceiver(h)) end
+    let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');", [], 4, SQLReceiver(h)) end
+    let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');", [], 4, SQLReceiver(h)) end
+    let query3: PGQuery iso = recover iso PGQuery("select * from temptest where id = 2", [], 4, SQLReceiver(h)) end
+    pg.query(consume query0)
+    pg.query(consume query1)
+    pg.query(consume query2)
+    pg.query(consume query3)
+
+    h.dispose_when_done(pg)
+
     h.long_test(30_000_000_00)
 
 actor SQLReceiver is ResultsReceiver
@@ -85,7 +105,7 @@ class SQLSelectTestNotify is PgSessionNotify
   fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None => None
 
 class _SQLLoginGood is UnitTest
-  fun name(): String => "sqllogin success"
+  fun name(): String => "integration/SQLLoginGood"
   fun apply(h: TestHelper) =>
     h.assert_eq[Bool](true, true)
     h.expect_action("login successful")
@@ -97,7 +117,7 @@ class _SQLLoginGood is UnitTest
     h.long_test(30_000_000)
 
 class _SQLLoginBad is UnitTest
-  fun name(): String => "sqllogin failure"
+  fun name(): String => "integration/SQLLoginBad"
   fun apply(h: TestHelper) =>
     h.assert_eq[Bool](true, true)
     h.expect_action("login fail")
