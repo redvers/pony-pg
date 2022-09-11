@@ -108,11 +108,11 @@ actor PgSession is TCPClientActor
       reader.clear()
       _connection.close()
     end
-    // try
-    //   if ((reader.size() > 0) and (reader.size().u32() >= reader.peek_u32_be(1)?)) then
-    //     process_packet()?
-    //   end
-    // end
+    try
+      if ((reader.size() > 0) and (reader.size().u32() >= reader.peek_u32_be(1)?)) then
+        process_packet()?
+      end
+    end
 
 
   fun gen_md5(salt: Array[U8] val): String val =>

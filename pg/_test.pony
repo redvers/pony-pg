@@ -23,10 +23,10 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-    test(_True)
+//    test(_True)
 //    test(_SQLLoginGood)
 //    test(_SQLLoginBad)
-//    test(_SQLSelectTest)
+    test(_SQLSelectTest)
 
 class _True is UnitTest
   fun name(): String => "I'm always true"
