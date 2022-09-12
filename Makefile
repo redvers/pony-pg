@@ -37,8 +37,8 @@ unit-tests: $(tests_binary)
 
 integration-tests: $(tests_binary)
 	netstat -na
-	nc -v 127.0.0.1 5432
-	$^ --only=integration --sequential
+	pg_isready
+#	$^ --only=integration --sequential
 
 $(tests_binary): $(SOURCE_FILES) | $(BUILD_DIR)
 	$(GET_DEPENDENCIES_WITH)
