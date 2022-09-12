@@ -48,6 +48,14 @@ actor PgSession is TCPClientActor
     wrap_writer(payload, 0)
     flush_writer()
 
+  fun ref on_closed() => Debug.out("Connection was closed")
+  fun ref on_throttled() => Debug.out("Connection was throttled")
+  fun ref on_unthrottled() => Debug.out("Connection was unthrottled")
+
+
+
+
+
   fun ref on_received(data: Array[U8] iso) =>
     reader.append(consume data)
     Debug.out("PgSession.on_received() called")
