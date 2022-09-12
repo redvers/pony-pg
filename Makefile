@@ -33,6 +33,7 @@ EXAMPLES_BINARIES := $(addprefix $(BUILD_DIR)/,$(EXAMPLES))
 test: unit-tests integration-tests build-examples
 
 unit-tests: $(tests_binary)
+	netstat -na
 	$^ --exclude=integration --sequential
 
 integration-tests: $(tests_binary)

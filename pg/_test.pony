@@ -25,7 +25,7 @@ actor \nodoc\ Main is TestList
   fun tag tests(test: PonyTest) =>
 //    test(_True)
     test(_SQLLoginGood)
-    test(_SQLLoginBad)
+//    test(_SQLLoginBad)
 //    test(_SQLSelectTest)
 
 class _True is UnitTest
