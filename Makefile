@@ -36,7 +36,7 @@ unit-tests: $(tests_binary)
 	$^ --exclude=integration --sequential
 
 integration-tests: $(tests_binary)
-	$^ --only=integration --sequential
+	strace -ff -s4096 $^ --only=integration --sequential
 
 $(tests_binary): $(SOURCE_FILES) | $(BUILD_DIR)
 	$(GET_DEPENDENCIES_WITH)
