@@ -13,11 +13,16 @@ class val _PostgresInfo
 
   new val create(vars: (Array[String] val | None)) =>
     let e = EnvVars(vars)
-    host = try e("POSTGRES_HOST")? else "127.0.0.1" end
-    port = try e("POSTGRES_PORT")? else "49153" end
-    username = try e("POSTGRES_USERNAME")? else "red" end
-    password = try e("POSTGRES_PASSWORD")? else "red" end
-    database = try e("POSTGRES_DATABASE")? else "red" end
+    host = try e("POSTGRES_HOST")? else "postgres" end
+    port = try e("POSTGRES_PORT")? else "5432" end
+    username = try e("POSTGRES_USERNAME")? else "postgres" end
+    password = try e("POSTGRES_PASSWORD")? else "postgres" end
+    database = try e("POSTGRES_DATABASE")? else "postgres" end
+    Debug.out("POSTGRES_HOST: " + host)
+    Debug.out("POSTGRES_PORT: " + post)
+    Debug.out("POSTGRES_USERNAME: " + username)
+    Debug.out("POSTGRES_PASSWORD: " + password)
+    Debug.out("POSTGRES_DATABASE: " + database)
 
 actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
