@@ -82,7 +82,7 @@ actor PgSession is TCPClientActor
                                       try process_packet()? end
         else
           let pkttype: U8 = reader.peek_u8(0)?
-          let poff: I32 = reader.peek_u8(5)?
+          let poff: I32 = reader.peek_i32_be(5)?
           Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]) + " " + poff.string())
           reader.clear()
           _connection.close()
