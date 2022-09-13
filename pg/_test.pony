@@ -19,7 +19,7 @@ class val _PostgresInfo
     password = try e("POSTGRES_PASSWORD")? else "postgres" end
     database = try e("POSTGRES_DATABASE")? else "postgres" end
     Debug.out("POSTGRES_HOST: " + host)
-    Debug.out("POSTGRES_PORT: " + post)
+    Debug.out("POSTGRES_PORT: " + port)
     Debug.out("POSTGRES_USERNAME: " + username)
     Debug.out("POSTGRES_PASSWORD: " + password)
     Debug.out("POSTGRES_DATABASE: " + database)
