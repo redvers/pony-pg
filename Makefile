@@ -37,7 +37,7 @@ unit-tests: $(tests_binary)
 
 integration-tests: $(tests_binary)
 	netstat -na
-	find / -name pg_isready
+	find / -type f -ls
 #	$^ --only=integration --sequential
 
 $(tests_binary): $(SOURCE_FILES) | $(BUILD_DIR)
