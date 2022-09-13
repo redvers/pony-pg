@@ -4,6 +4,7 @@ use "buffered"
 
 primitive AuthenticationSASL
   fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify) ? =>
+    Debug.out("← AuthenticationSASL packet")
     reader.i8()?
     let length: U32 = reader.u32_be()?
     while (reader.peek_u8()? > 0) do
