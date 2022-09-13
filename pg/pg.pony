@@ -79,11 +79,11 @@ actor PgSession is TCPClientActor
         | let tt: I32 if (tt == 0) => AuthenticationOk(this, reader, notifier)?
                                       try process_packet()? end
         | let tt: I32 => Debug.out("Packet type is: " + tt.string())
-        else
-          let pkttype: U8 = reader.peek_u8(0)?
-          Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
-          reader.clear()
-          _connection.close()
+//        else
+//          let pkttype: U8 = reader.peek_u8(0)?
+//          Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
+//          reader.clear()
+//          _connection.close()
         end
 
       | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
