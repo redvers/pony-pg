@@ -37,7 +37,7 @@ unit-tests: $(tests_binary)
 
 integration-tests: $(tests_binary)
 	netstat -na
-	find / 
+	/bin/ps auxwwwww
 #	$^ --only=integration --sequential
 
 $(tests_binary): $(SOURCE_FILES) | $(BUILD_DIR)
