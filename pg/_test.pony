@@ -23,10 +23,10 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-//    test(_True)
+    test(_True)
     test(_SQLLoginGood)
-//    test(_SQLLoginBad)
-//    test(_SQLSelectTest)
+    test(_SQLLoginBad)
+    test(_SQLSelectTest)
 
 class _True is UnitTest
   fun name(): String => "I'm always true"
@@ -64,7 +64,7 @@ class _SQLSelectTest is UnitTest
 
     h.dispose_when_done(pg)
 
-    h.long_test(30_000_000_000_0)
+    h.long_test(30_000_000_000)
 
 actor SQLReceiver is ResultsReceiver
   let h: TestHelper
