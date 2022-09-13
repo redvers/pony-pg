@@ -119,7 +119,7 @@ class _SQLLoginGood is UnitTest
           "5432", "postgres", "postgres", "postgres",
           recover iso SQLLoginTestsGood(h) end)
     )
-    h.long_test(30_000_000)
+    h.long_test(300_000_000)
 
 class _SQLLoginBad is UnitTest
   fun name(): String => "integration/SQLLoginBad"
@@ -131,7 +131,7 @@ class _SQLLoginBad is UnitTest
           "5432", "postgres", "baddpassword", "postgres",
           recover iso SQLLoginTestsBad(h) end)
     )
-    h.long_test(30_000_000)
+    h.long_test(300_000_000)
 
 class SQLLoginTestsGood is PgSessionNotify
   let h: TestHelper
