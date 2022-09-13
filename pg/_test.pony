@@ -30,8 +30,8 @@ actor \nodoc\ Main is TestList
   fun tag tests(test: PonyTest) =>
     test(_True)
     test(_SQLLoginGood)
-    test(_SQLLoginBad)
-    test(_SQLSelectTest)
+//    test(_SQLLoginBad)
+//    test(_SQLSelectTest)
 
 class _True is UnitTest
   fun name(): String => "I'm always true"
@@ -115,8 +115,8 @@ class _SQLLoginGood is UnitTest
     h.assert_eq[Bool](true, true)
     h.expect_action("login successful")
     h.dispose_when_done(
-      PgSession(NetAuth(h.env.root), "127.0.0.1",
-          "5432", "red", "red", "red",
+      PgSession(NetAuth(h.env.root), "postgres",
+          "5432", "postgres", "postgres", "postgres",
           recover iso SQLLoginTestsGood(h) end)
     )
     h.long_test(30_000_000)
@@ -127,8 +127,8 @@ class _SQLLoginBad is UnitTest
     h.assert_eq[Bool](true, true)
     h.expect_action("login fail")
     h.dispose_when_done(
-      PgSession(NetAuth(h.env.root), "127.0.0.1",
-          "5432", "red", "baddpassword", "red",
+      PgSession(NetAuth(h.env.root), "postgres",
+          "5432", "postgres", "baddpassword", "postgres",
           recover iso SQLLoginTestsBad(h) end)
     )
     h.long_test(30_000_000)
