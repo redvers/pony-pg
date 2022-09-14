@@ -66,7 +66,7 @@ actor SQLReceiver is ResultsReceiver
   new create(h': TestHelper) =>
     h = h'
 
-  be receive_results(pgquery: PGQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
+  be receive_results(ptag: PgSession, pgquery: PGQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
     var rowcnt: USize = 0
     for f in (consume data).values() do
       try let id: I64 = f.apply(0)? as I64 else h.fail("I64 did not cast") end
@@ -83,6 +83,7 @@ actor SQLReceiver is ResultsReceiver
     | let x: String if (x == "insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');") => h.complete_action("select2")
     | let x: String if (x == "select * from temptest where id = 2") =>
       h.complete_action("select3")
+      ptag.terminate()
     end
 
 class SQLSelectTestNotify is PgSessionNotify

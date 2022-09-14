@@ -92,8 +92,7 @@ actor PgSession is TCPClientActor
           if (queryqueue.size() > 0) then
             current_query = queryqueue.shift()?
             match current_query
-            | let x: PGQuery val => wrap_writer(SimpleQuery(x.query), 'Q')
-                                    Debug.out("←>> " + x.query)
+            | let x: PGQuery val => writer.write(SimpleQuery(x.query))
             end
             flush_writer()
           end
@@ -118,7 +117,7 @@ actor PgSession is TCPClientActor
           | let x: None val => Debug.out("Nowhere to send results to")
           | let x: PGQuery val =>
              let sendme: Array[Array[PGNativePonyTypes] val] iso = resultbuffer = recover iso Array[Array[PGNativePonyTypes] val] end
-             x.sendto.receive_results(x, consume sendme)
+             x.sendto.receive_results(this, x, consume sendme)
              current_query = None
              /* handwave - cuing up the next query goes here */
           end
@@ -136,68 +135,6 @@ actor PgSession is TCPClientActor
         check_packet_queue()
       end
     end
-
-
-/*
-  be process_packet() =>
-    try
-    if ((reader.size() > 0) and (reader.size().u32() >= reader.peek_u32_be(1)?)) then
-      match reader.peek_u8(0)?
-      /* Some kind of Authentication Packet */
-      | let t: U8 if (t == 'R') =>
-        /* Check for AuthenticationMD5Password */
-        match reader.peek_i32_be(5)?
-        | let tt: I32 if (tt == 5) =>
-          let salt: Array[U8] val = AuthenticationMD5Password.apply(this, reader, notifier)?
-          let md5res: String val = gen_md5(salt)
-          /* Return Challenge */
-          wrap_writer(PGPasswordMessage.apply(md5res), 'p')
-          flush_writer()
-
-        | let tt: I32 if (tt == 0) => AuthenticationOk(this, reader, notifier)?
-        else
-          Debug.out("← ABORT Unknown Authentication packet: " + reader.peek_i32_be(5)?.string())
-          reader.clear()
-          _connection.close()
-        end
-
-      | let t: U8 if (t == 'S') => ParameterStatus.apply(this, reader, notifier)?
-      | let t: U8 if (t == 'K') => BackendKeyData.apply(this, reader, notifier)?
-      | let t: U8 if (t == 'Z') => ReadyForQuery.apply(this, reader, notifier)?
-                                   Debug.out("QueryQueueSize: " + queryqueue.size().string())
-                                   if (queryqueue.size() > 0) then
-                                     current_query = queryqueue.shift()?
-                                     match current_query
-                                     | let x: PGQuery val => wrap_writer(SimpleQuery(x.query), 'Q')
-                                                             Debug.out("←>> " + x.query)
-                                     end
-                                     flush_writer()
-                                   end
-      | let t: U8 if (t == 'T') => columntypes = RowDescription(this, reader, notifier)?
-      | let t: U8 if (t == 'D') => resultbuffer.push(DataRow(columntypes, this, reader, notifier)?)
-                                    /* handwave - should be checking batchsize here */
-      | let t: U8 if (t == 'C') => CommandComplete(this, reader, notifier)?
-                                   match current_query
-                                   | let x: None val => Debug.out("Nowhere to send results to")
-                                   | let x: PGQuery val =>
-                                     let sendme: Array[Array[PGNativePonyTypes] val] iso = resultbuffer = recover iso Array[Array[PGNativePonyTypes] val] end
-                                     x.sendto.receive_results(x, consume sendme)
-                                     current_query = None
-                                     /* handwave - cuing up the next query goes here */
-                                   end
-
-      | let t: U8 if (t == 'E') => ErrorResponse(this, reader, notifier)?
-      else
-        let pkttype: U8 = reader.peek_u8(0)?
-        Debug.out("← ABORT Unknown packet: " + String.from_array([pkttype]))
-        reader.clear()
-        _connection.close()
-      end
-      process_packet()
-    end
-    end
-
- */
 
   fun gen_md5(salt: Array[U8] val): Array[U8] iso^ =>
     recover
@@ -218,15 +155,11 @@ actor PgSession is TCPClientActor
       _connection.send(byteseq)
     end
 
-  be simple_query(q: String) =>
-    wrap_writer(SimpleQuery(q), 'Q')
-    flush_writer()
-
   be query(pgq: PGQuery val) =>
     queryqueue.push(pgq)
 
   be terminate() =>
-    wrap_writer(Terminate(), 'X')
+    writer.write(Terminate())
     flush_writer()
 
   be kill() =>
