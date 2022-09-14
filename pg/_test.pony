@@ -24,7 +24,7 @@ actor \nodoc\ Main is TestList
 
   fun tag tests(test: PonyTest) =>
     test(_True)
-//    test(_SQLLoginGood)
+    test(_SQLLoginGood)
 //    test(_SQLLoginBad)
 //    test(_SQLSelectTest)
 
@@ -107,11 +107,13 @@ class SQLSelectTestNotify is PgSessionNotify
 class _SQLLoginGood is UnitTest
   fun name(): String => "integration/SQLLoginGood"
   fun apply(h: TestHelper) =>
+    let info = _PostgresInfo(h.env.vars)
+
     h.assert_eq[Bool](true, true)
     h.expect_action("login successful")
     h.dispose_when_done(
-      PgSession(NetAuth(h.env.root), "127.0.0.1",
-          "5432", "red", "red", "red",
+      PgSession(NetAuth(h.env.root), info.host,
+          info.port, info.username, info.password, info.database,
           recover iso SQLLoginTestsGood(h) end)
     )
     h.long_test(30_000_000)
@@ -133,7 +135,6 @@ class SQLLoginTestsGood is PgSessionNotify
   new create(h': TestHelper) =>
     h = h'
 
-  fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None =>
     h.complete_action("login successful")
     ptag.terminate()

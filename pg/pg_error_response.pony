@@ -4,7 +4,6 @@ use "buffered"
 use "collections"
 
 use @exit[None](r: I32)
-use @printf[I32](fmt: Pointer[U8] tag, ...)
 
 primitive ErrorResponse
   fun apply(ptag: PgSession, reader: Reader, notifier: PgSessionNotify) ? =>
