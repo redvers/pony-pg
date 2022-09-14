@@ -46,17 +46,3 @@ primitive ErrorResponse
     else
 			"Undefined in PostgreSQL Documentation section 53.8"
 		end
-/*
-
-    while (length > 0) do
-      let code: U8 = reader.u8()?
-			if (code == 0) then break end
-      let commandtag: String val = String.from_array(reader.read_until(0)?)
-      Debug.out("← ErrorResponse: " + string(code) + ": " + commandtag)
-      if (code == 'C') and (commandtag.substring(0,2) == "28") then
-        notifier.on_auth_fail(ptag, commandtag)
-      end
-    end
-
-
-    */
