@@ -2,6 +2,7 @@ use "lori"
 use "cli"
 use "debug"
 use "pony_test"
+use "collections"
 
 
 class val _PostgresInfo
@@ -23,8 +24,8 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-    test(_SQLLoginGood)
-    test(_SQLLoginBad)
+//    test(_SQLLoginGood)
+//    test(_SQLLoginBad)
     test(_SQLSelectTest)
 
 class _SQLSelectTest is UnitTest
@@ -91,7 +92,7 @@ class SQLSelectTestNotify is PgSessionNotify
 
   fun ref on_connected(ptag: PgSession) => None
   fun ref on_authenticated(ptag: PgSession): None => None
-  fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
+  fun ref on_auth_fail(ptag: PgSession, perror: Map[String val, String val] val): None =>
     h.fail_action("select * from test")
     ptag.terminate()
 
@@ -133,7 +134,7 @@ class SQLLoginTestsGood is PgSessionNotify
     h.complete_action("login successful")
     ptag.terminate()
 
-  fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
+  fun ref on_auth_fail(ptag: PgSession, perror: Map[String val, String val] val): None =>
     h.fail_action("login successful")
     ptag.terminate()
 
@@ -150,7 +151,7 @@ class SQLLoginTestsBad is PgSessionNotify
     h.fail_action("login fail")
     ptag.terminate()
 
-  fun ref on_auth_fail(ptag: PgSession, commandtag: String): None =>
+  fun ref on_auth_fail(ptag: PgSession, perror: Map[String val, String val] val) =>
     h.complete_action("login fail")
     ptag.terminate()
 
@@ -159,3 +160,5 @@ class SQLLoginTestsBad is PgSessionNotify
     h.fail_action("login fail")
     ptag.terminate()
 
+  fun ref on_fatal_error(ptag: PgSession, perror: Map[String val, String val] val) =>
+    None
