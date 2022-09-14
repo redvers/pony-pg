@@ -111,6 +111,23 @@ actor PgSession is TCPClientActor
           else
             None
           end
+        | if (packettype == 'C') =>
+          let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
+          let commandtag: String val = CommandComplete(consume block)
+          match current_query
+          | let x: None val => Debug.out("Nowhere to send results to")
+          | let x: PGQuery val =>
+             let sendme: Array[Array[PGNativePonyTypes] val] iso = resultbuffer = recover iso Array[Array[PGNativePonyTypes] val] end
+             x.sendto.receive_results(x, consume sendme)
+             current_query = None
+             /* handwave - cuing up the next query goes here */
+          end
+        | if (packettype == 'T') =>
+          let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
+          columntypes = RowDescription(consume block)?
+        | if (packettype == 'D') =>
+          let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
+          resultbuffer.push(DataRow(columntypes, consume block)?)
         else
           Debug("Unknown packet")
           reader.clear()
