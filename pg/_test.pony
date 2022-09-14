@@ -23,15 +23,9 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-//    test(_True)
     test(_SQLLoginGood)
     test(_SQLLoginBad)
     test(_SQLSelectTest)
-
-class _True is UnitTest
-  fun name(): String => "I'm always true"
-  fun apply(h: TestHelper) =>
-    h.assert_eq[Bool](true, true)
 
 class _SQLSelectTest is UnitTest
   fun name(): String => "integration/SQLSelectTest"
