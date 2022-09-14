@@ -24,8 +24,8 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-//    test(_SQLLoginGood)
-//    test(_SQLLoginBad)
+    test(_SQLLoginGood)
+    test(_SQLLoginBad)
     test(_SQLSelectTest)
 
 class _SQLSelectTest is UnitTest
