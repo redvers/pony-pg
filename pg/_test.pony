@@ -24,9 +24,71 @@ actor \nodoc\ Main is TestList
   new create(env: Env) => PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
-    test(_SQLLoginGood)
-    test(_SQLLoginBad)
-    test(_SQLSelectTest)
+//    test(_SQLLoginGood)
+//    test(_SQLLoginBad)
+//    test(_SQLSelectTest)
+    test(_SQLPreparedTest)
+
+class _SQLPreparedTest is UnitTest
+  fun name(): String => "integration/SQLSelectTest"
+  fun apply(h: TestHelper) =>
+    let info = _PostgresInfo(h.env.vars)
+
+    h.expect_action("prepared0")
+
+    let pg: PgSession = PgSession(NetAuth(h.env.root), info.host,
+        info.port, info.username, info.password, info.database,
+        recover iso SQLPreparedNotify(h) end)
+
+    let createsql: String val =
+    """
+    create TEMPORARY TABLE temptest (
+      id bigint NOT NULL UNIQUE,
+      testint integer NOT NULL,
+      testtext TEXT);
+    """
+    let query0: SimplerQuery iso = recover iso SimplerQuery(createsql, [], 4, SQLReceiver(h)) end
+    let prepared: PreparedQuery val = recover iso
+      PreparedQuery(
+      "insert into temptest (id, testint, testtext) VALUES ($1, $2, $3);",
+      3, 4, "a_query", SQLPreparedReceiver(h))
+    end
+
+		pg.query(consume query0)
+    pg.prepare(prepared, None)
+    pg.execute(prepared, [I32(14); I32(27); "A prepared string"])
+    pg.execute(prepared, [I32(15); I32(27); "A prepared string"])
+    pg.execute(prepared, [I32(16); I32(27); "A prepared string"])
+    pg.execute(prepared, [I32(17); I32(27); "A prepared string"])
+    pg.sync()
+
+    h.dispose_when_done(pg)
+
+    h.long_test(30_000_000_000)
+
+actor SQLPreparedReceiver is ResultsReceiver
+  let h: TestHelper
+  new create(h': TestHelper) =>
+    h = h'
+
+  be receive_results(ptag: PgSession, pgquery: SimplerQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
+    None
+
+
+class SQLPreparedNotify is PgSessionNotify
+  let h: TestHelper
+  new create(h': TestHelper) =>
+    h = h'
+
+  fun ref on_connected(ptag: PgSession) => None
+  fun ref on_authenticated(ptag: PgSession): None => None
+  fun ref on_auth_fail(ptag: PgSession, perror: Map[String val, String val] val): None =>
+    h.fail_action("prepared0")
+    ptag.terminate()
+
+  fun ref on_parameter_status(ptag: PgSession, n: String, value: String): None => None
+  fun ref on_ready_for_query(ptag: PgSession tag, status: U8): None => None
+
 
 class _SQLSelectTest is UnitTest
   fun name(): String => "integration/SQLSelectTest"
@@ -48,10 +110,10 @@ class _SQLSelectTest is UnitTest
       testint integer NOT NULL,
       testtext TEXT);
     """
-    let query0: PGQuery iso = recover iso PGQuery(createsql, [], 4, SQLReceiver(h)) end
-    let query1: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');", [], 4, SQLReceiver(h)) end
-    let query2: PGQuery iso = recover iso PGQuery("insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');", [], 4, SQLReceiver(h)) end
-    let query3: PGQuery iso = recover iso PGQuery("select * from temptest where id = 2", [], 4, SQLReceiver(h)) end
+    let query0: SimplerQuery iso = recover iso SimplerQuery(createsql, [], 4, SQLReceiver(h)) end
+    let query1: SimplerQuery iso = recover iso SimplerQuery("insert into temptest (id, testint, testtext) VALUES (1, 10, 'row 1');", [], 4, SQLReceiver(h)) end
+    let query2: SimplerQuery iso = recover iso SimplerQuery("insert into temptest (id, testint, testtext) VALUES (2, 20, 'row 2');", [], 4, SQLReceiver(h)) end
+    let query3: SimplerQuery iso = recover iso SimplerQuery("select * from temptest where id = 2", [], 4, SQLReceiver(h)) end
     pg.query(consume query0)
     pg.query(consume query1)
     pg.query(consume query2)
@@ -66,7 +128,7 @@ actor SQLReceiver is ResultsReceiver
   new create(h': TestHelper) =>
     h = h'
 
-  be receive_results(ptag: PgSession, pgquery: PGQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
+  be receive_results(ptag: PgSession, pgquery: SimplerQuery val, data: Array[Array[PGNativePonyTypes] val] iso) =>
     var rowcnt: USize = 0
     for f in (consume data).values() do
       try let id: I64 = f.apply(0)? as I64 else h.fail("I64 did not cast") end

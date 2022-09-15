@@ -2,9 +2,9 @@ class ResultSet
   let results: Array[Array[PGNativePonyTypes]]
   var final: Bool = false
   var batch_number: USize = 0
-  let query: PGQuery
+  let query: SimplerQuery
 
-  new create(query': PGQuery, batch_number': USize,
+  new create(query': SimplerQuery, batch_number': USize,
              results': Array[Array[PGNativePonyTypes]],
              final': Bool) =>
     query = query'

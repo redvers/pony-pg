@@ -5,6 +5,8 @@ use "format"
 use "buffered"
 use "collections"
 
+type PGQuery is (SimplerQuery|Sync|(PreparedQuery, (Array[PGNativePonyTypes]|None)))
+
 actor PgSession is TCPClientActor
   let auth: NetAuth
   let host: String
@@ -89,10 +91,26 @@ actor PgSession is TCPClientActor
           let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
           let state: U8 = ReadyForQuery(consume block)?
           Debug.out("QueryQueueSize: " + queryqueue.size().string())
-          if (queryqueue.size() > 0) then
+          while (queryqueue.size() > 0) do
             current_query = queryqueue.shift()?
             match current_query
-            | let x: PGQuery val => writer.write(SimpleQuery(x.query))
+            | let x: SimplerQuery val => writer.write(SimpleQuery(x.query))
+              Debug.out("i r Simpler")
+              flush_writer()
+            | (let prep: PreparedQuery val, let t: None) =>
+              Debug.out("Blank Prepared")
+              let payload: Array[U8] iso = Parse(prep)?
+              writer.write(consume payload)
+              flush_writer()
+            | (let prep: PreparedQuery val, let t: Array[PGNativePonyTypes] val) =>
+              let payload: Array[U8] iso = Bind(prep, t)?
+              writer.write(consume payload)
+              let payload2: Array[U8] iso = Execute(prep)?
+              writer.write(consume payload2)
+            | let x: Sync =>
+              writer.write(Sync())
+            else
+              Debug.out("I should be impossible")
             end
             flush_writer()
           end
@@ -115,11 +133,12 @@ actor PgSession is TCPClientActor
           let commandtag: String val = CommandComplete(consume block)
           match current_query
           | let x: None val => Debug.out("Nowhere to send results to")
-          | let x: PGQuery val =>
+          | let x: SimplerQuery val =>
              let sendme: Array[Array[PGNativePonyTypes] val] iso = resultbuffer = recover iso Array[Array[PGNativePonyTypes] val] end
              x.sendto.receive_results(this, x, consume sendme)
              current_query = None
              /* handwave - cuing up the next query goes here */
+//          | (let prep: PreparedQuery val, let t: None) => Debug.out("Need to register our PreparedQuery")
           end
         | if (packettype == 'T') =>
           let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
@@ -144,18 +163,12 @@ actor PgSession is TCPClientActor
       ))).iso_array()
     end
 
-  fun ref wrap_writer(inner: Writer, qtype: U8) =>
-    if (qtype != 0) then writer.u8(qtype) end
-    writer.i32_be(inner.size().i32() + 4)
-    writer.writev(inner.done())
-
-
   fun ref flush_writer() =>
     for byteseq in writer.done().values() do
       _connection.send(byteseq)
     end
 
-  be query(pgq: PGQuery val) =>
+  be query(pgq: SimplerQuery val) =>
     queryqueue.push(pgq)
 
   be terminate() =>
@@ -164,3 +177,13 @@ actor PgSession is TCPClientActor
 
   be kill() =>
     _connection.close()
+
+  be prepare(pquery: PreparedQuery val, data: (Array[PGNativePonyTypes] val | None)) =>
+    queryqueue.push((pquery, data))
+
+  be execute(pquery: PreparedQuery val, data: (Array[PGNativePonyTypes] val | None)) =>
+    queryqueue.push((pquery, data))
+
+  be sync() =>
+    queryqueue.push(Sync)
+
