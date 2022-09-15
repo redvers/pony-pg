@@ -95,10 +95,8 @@ actor PgSession is TCPClientActor
             current_query = queryqueue.shift()?
             match current_query
             | let x: SimplerQuery val => writer.write(SimpleQuery(x.query))
-              Debug.out("i r Simpler")
               flush_writer()
             | (let prep: PreparedQuery val, let t: None) =>
-              Debug.out("Blank Prepared")
               let payload: Array[U8] iso = Parse(prep)?
               writer.write(consume payload)
               flush_writer()
@@ -138,7 +136,6 @@ actor PgSession is TCPClientActor
              x.sendto.receive_results(this, x, consume sendme)
              current_query = None
              /* handwave - cuing up the next query goes here */
-//          | (let prep: PreparedQuery val, let t: None) => Debug.out("Need to register our PreparedQuery")
           end
         | if (packettype == 'T') =>
           let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
@@ -146,6 +143,12 @@ actor PgSession is TCPClientActor
         | if (packettype == 'D') =>
           let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
           resultbuffer.push(DataRow(columntypes, consume block)?)
+        | if (packettype == '1') =>
+          let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
+          ParseComplete(consume block)
+        | if (packettype == '2') =>
+          let block: Array[U8] iso = reader.block(reader.peek_u32_be(1)?.usize() + 1)?
+          BindComplete(consume block)
         else
           Debug("Unknown packet")
           reader.clear()

@@ -4,6 +4,7 @@ use "collections"
 
 primitive Sync
   fun apply(): Array[U8] iso^ =>
+    Debug.out("→ Sync")
     recover iso
       let rv: Array[U8] = Array[U8]
       rv.push('S')
